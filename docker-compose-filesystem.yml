@@ -10,13 +10,16 @@ services:
       # Server Configuration
       - SERVER_PORT=4000
 
+      # Authentication Configuration
+      - AUTH_TOKEN=${AUTH_TOKEN:-change-me-in-production}
+
       # Storage Configuration - Filesystem
       - STORAGE_TYPE=FILESYSTEM
       - STORAGE_FILESYSTEM_DIRECTORY=/app/data/files
 
       # Logging Configuration
       - LOGGING_LEVEL_ROOT=INFO
-      - LOGGING_LEVEL_NET_SPARKWORKS_AC3_LOGGER=DEBUG
+      - LOGGING_LEVEL_NET_SPARKWORKS_DATALAKE_RECEIVER=DEBUG
     volumes:
       # Mount local directory for file storage
       - ./data/files:/app/data/files

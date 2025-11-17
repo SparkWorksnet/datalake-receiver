@@ -36,6 +36,9 @@ services:
       # Server Configuration
       - SERVER_PORT=4000
 
+      # Authentication Configuration
+      - AUTH_TOKEN=${AUTH_TOKEN:-change-me-in-production}
+
       # Storage Configuration - MinIO
       - STORAGE_TYPE=MINIO
       - STORAGE_MINIO_ENDPOINT=http://minio:9000
@@ -45,7 +48,7 @@ services:
 
       # Logging Configuration
       - LOGGING_LEVEL_ROOT=INFO
-      - LOGGING_LEVEL_NET_SPARKWORKS_AC3_LOGGER=DEBUG
+      - LOGGING_LEVEL_NET_SPARKWORKS_DATALAKE_RECEIVER=DEBUG
     depends_on:
       minio:
         condition: service_healthy

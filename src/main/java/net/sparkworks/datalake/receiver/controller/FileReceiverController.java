@@ -1,6 +1,7 @@
 package net.sparkworks.datalake.receiver.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import net.sparkworks.datalake.receiver.config.AuthProperties;
 import net.sparkworks.datalake.receiver.storage.StorageProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,11 +21,14 @@ public class FileReceiverController {
 
     private static final Logger logger = LoggerFactory.getLogger(FileReceiverController.class);
     private static final String FILENAME_HEADER = "X-file-name";
+    private static final String BEARER_PREFIX = "Bearer ";
 
     private final StorageProvider storageProvider;
+    private final AuthProperties authProperties;
 
-    public FileReceiverController(StorageProvider storageProvider) {
+    public FileReceiverController(StorageProvider storageProvider, AuthProperties authProperties) {
         this.storageProvider = storageProvider;
+        this.authProperties = authProperties;
     }
 
     /**
@@ -48,6 +52,13 @@ public class FileReceiverController {
 
         // Log all headers
         headers.forEach((key, value) -> logger.info("header[{}]={}", key, value));
+
+        // Validate access token
+        if (!isAuthorized(headers)) {
+            logger.warn("Unauthorized access attempt");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Unauthorized: Invalid or missing access token");
+        }
 
         // Extract filename from request path, header, or generate one
         String filename = extractFilename(request, headers);
@@ -96,6 +107,50 @@ public class FileReceiverController {
         String generatedFilename = "%d.data".formatted(System.currentTimeMillis());
         logger.debug("Using generated filename: {}", generatedFilename);
         return generatedFilename;
+    }
+
+    /**
+     * Validate the Authorization header contains the correct access token.
+     * Supports Bearer token format: "Bearer {token}"
+     *
+     * @param headers HTTP headers
+     * @return true if authorized, false otherwise
+     */
+    private boolean isAuthorized(HttpHeaders headers) {
+        // Skip validation if authentication is disabled
+        if (!authProperties.isEnabled()) {
+            logger.debug("Authentication is disabled");
+            return true;
+        }
+
+        // Check if access token is configured
+        if (authProperties.getAccessToken() == null || authProperties.getAccessToken().isBlank()) {
+            logger.warn("Access token is not configured but authentication is enabled");
+            return false;
+        }
+
+        // Get Authorization header
+        String authHeader = headers.getFirst(HttpHeaders.AUTHORIZATION);
+        if (authHeader == null || authHeader.isBlank()) {
+            logger.debug("Missing Authorization header");
+            return false;
+        }
+
+        // Validate Bearer token format
+        if (!authHeader.startsWith(BEARER_PREFIX)) {
+            logger.debug("Authorization header does not start with 'Bearer '");
+            return false;
+        }
+
+        // Extract and validate token
+        String token = authHeader.substring(BEARER_PREFIX.length()).trim();
+        boolean isValid = authProperties.getAccessToken().equals(token);
+
+        if (!isValid) {
+            logger.debug("Invalid access token provided");
+        }
+
+        return isValid;
     }
 
     /**

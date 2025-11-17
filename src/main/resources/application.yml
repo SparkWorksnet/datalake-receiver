@@ -36,6 +36,16 @@ storage:
     secret-key: minioadmin
     bucket-name: datalake
 
+# Authentication Configuration
+auth:
+  # Enable/disable authentication
+  enabled: true
+
+  # Access token for API authentication
+  # Clients must provide this token in the Authorization header as "Bearer {token}"
+  # IMPORTANT: Change this to a secure random token in production
+  access-token: ${AUTH_TOKEN:change-me-in-production}
+
 # Logging Configuration
 logging:
   level:
