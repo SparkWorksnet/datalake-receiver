@@ -6,7 +6,7 @@ server:
 
 spring:
   application:
-    name: data-lake-receiver
+    name: datalake-receiver
 
   banner:
     location: classpath:banner.txt
@@ -34,7 +34,7 @@ storage:
     endpoint: http://localhost:9000
     access-key: minioadmin
     secret-key: minioadmin
-    bucket-name: data-lake
+    bucket-name: datalake
 
 # Logging Configuration
 logging:

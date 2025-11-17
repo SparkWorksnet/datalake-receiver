@@ -60,6 +60,6 @@ public class StorageProperties {
         /**
          * MinIO bucket name
          */
-        private String bucketName = "data-lake";
+        private String bucketName = "datalake";
     }
 }

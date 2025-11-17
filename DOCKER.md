@@ -159,7 +159,7 @@ curl http://localhost:9000/minio/health/live
 
 1. Open MinIO Console: http://localhost:9001
 2. Login with `minioadmin` / `minioadmin`
-3. Navigate to `data-lake` bucket
+3. Navigate to `datalake` bucket
 4. See your uploaded files
 
 ### Configuration
@@ -261,12 +261,12 @@ Only essential defaults are configured in `pom.xml` using the `BPE_` prefix:
 All other configuration uses **application.yml defaults** that can be overridden at runtime:
 
 | Variable | Default (application.yml) | Description |
-|----------|--------------------------|-------------|
+|----------|-------------------------|-------------|
 | `STORAGE_FILESYSTEM_DIRECTORY` | `files` | Directory path for file storage |
 | `STORAGE_MINIO_ENDPOINT` | `http://localhost:9000` | MinIO server URL |
 | `STORAGE_MINIO_ACCESS_KEY` | `minioadmin` | MinIO access key |
 | `STORAGE_MINIO_SECRET_KEY` | `minioadmin` | MinIO secret key |
-| `STORAGE_MINIO_BUCKET_NAME` | `data-lake` | MinIO bucket name |
+| `STORAGE_MINIO_BUCKET_NAME` | `datalake` | MinIO bucket name |
 | `LOGGING_LEVEL_ROOT` | `INFO` | Root logging level |
 | `LOGGING_LEVEL_NET_SPARKWORKS_AC3_LOGGER` | `DEBUG` | Application logging level |
 
@@ -591,7 +591,7 @@ docker run --rm -v data-lake-receiver_minio-data:/data \
 ```
 
 ### Q: Can I change the MinIO credentials?
-A: Yes, edit the `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD` in docker-compose-minio.yml, and update the corresponding variables in the data-lake-receiver service.
+A: Yes, edit the `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD` in docker-compose-minio.yml, and update the corresponding variables in the datalake-receiver service.
 
 ### Q: How do I scale this for production?
 A: Consider:

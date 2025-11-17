@@ -572,9 +572,9 @@ services:
 ```
 
 **Available images:**
-- `ghcr.io/sparkworks/data-lake-receiver:latest` - Latest stable release
-- `ghcr.io/sparkworks/data-lake-receiver:1.0.0` - Specific version
-- `ghcr.io/sparkworks/data-lake-receiver:develop` - Development branch
+- `ghcr.io/sparkworks/datalake-receiver:latest` - Latest stable release
+- `ghcr.io/sparkworks/datalake-receiver:1.0.0` - Specific version
+- `ghcr.io/sparkworks/datalake-receiver:develop` - Development branch
 
 See [GITHUB_REGISTRY.md](GITHUB_REGISTRY.md) for complete details on pulling images and authentication.
 
