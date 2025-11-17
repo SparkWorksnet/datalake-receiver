@@ -1,0 +1,67 @@
+# Spring Boot Configuration for Data Lake Receiver
+# =================================================
+
+server:
+  port: 4000
+
+spring:
+  application:
+    name: data-lake-receiver
+
+  banner:
+    location: classpath:banner.txt
+
+  servlet:
+    multipart:
+      enabled: false  # We handle raw bytes, not multipart
+
+# Application Info (for banner)
+application:
+  title: Data Lake Receiver
+  version: 1.0-SNAPSHOT
+
+# Storage Configuration
+storage:
+  # Storage type: FILESYSTEM or MINIO
+  type: filesystem
+
+  # Filesystem storage configuration
+  filesystem:
+    directory: files
+
+  # MinIO storage configuration (uncomment and configure when using MinIO)
+  minio:
+    endpoint: http://localhost:9000
+    access-key: minioadmin
+    secret-key: minioadmin
+    bucket-name: data-lake
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    net.sparkworks.datalake.receiver: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+---
+# Production Profile
+spring:
+  config:
+    activate:
+      on-profile: production
+
+logging:
+  level:
+    root: WARN
+    net.sparkworks.datalake.receiver: INFO
+
+---
+# MinIO Profile
+spring:
+  config:
+    activate:
+      on-profile: minio
+
+storage:
+  type: minio

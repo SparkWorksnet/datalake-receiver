@@ -1,0 +1,73 @@
+services:
+  # MinIO Object Storage Server
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9001:9001"   # MinIO Console
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "1"
+    networks:
+      - datalake-network
+
+  # Data Lake Receiver Application
+  datalake-receiver:
+    image: datalake-receiver:latest
+    container_name: datalake-receiver-minio
+    ports:
+      - "4000:4000"
+    environment:
+      # Server Configuration
+      - SERVER_PORT=4000
+
+      # Storage Configuration - MinIO
+      - STORAGE_TYPE=MINIO
+      - STORAGE_MINIO_ENDPOINT=http://minio:9000
+      - STORAGE_MINIO_ACCESS_KEY=minioadmin
+      - STORAGE_MINIO_SECRET_KEY=minioadmin
+      - STORAGE_MINIO_BUCKET_NAME=data-lake
+
+      # Logging Configuration
+      - LOGGING_LEVEL_ROOT=INFO
+      - LOGGING_LEVEL_NET_SPARKWORKS_AC3_LOGGER=DEBUG
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:4000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "1"
+    networks:
+      - datalake-network
+
+volumes:
+  minio-data:
+    driver: local
+
+networks:
+  datalake-network:
+    driver: bridge

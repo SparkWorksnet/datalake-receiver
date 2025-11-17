@@ -550,15 +550,44 @@ mvn test
 
 ## Docker Deployment
 
-Two ready-to-use Docker Compose configurations are provided. The application uses **Spring Boot Maven Plugin** with Cloud Native Buildpacks for optimized Docker image creation.
+### Using Pre-built Images (Recommended)
 
-### Build the Docker Image
+Pre-built images are automatically published to GitHub Container Registry on every release:
 
 ```bash
-# Build using Spring Boot Maven plugin (recommended)
-mvn spring-boot:build-image
+# Pull and run latest version
+docker pull ghcr.io/sparkworks/data-lake-receiver:latest
+docker run -p 4000:4000 ghcr.io/sparkworks/data-lake-receiver:latest
 
-# This creates: data-lake-receiver:1.0-SNAPSHOT and data-lake-receiver:latest
+# Or use in docker-compose
+```
+
+Update `docker-compose.yml` to use the pre-built image:
+```yaml
+services:
+  data-lake-receiver:
+    image: ghcr.io/sparkworks/data-lake-receiver:latest  # Use pre-built image
+    ports:
+      - "4000:4000"
+```
+
+**Available images:**
+- `ghcr.io/sparkworks/data-lake-receiver:latest` - Latest stable release
+- `ghcr.io/sparkworks/data-lake-receiver:1.0.0` - Specific version
+- `ghcr.io/sparkworks/data-lake-receiver:develop` - Development branch
+
+See [GITHUB_REGISTRY.md](GITHUB_REGISTRY.md) for complete details on pulling images and authentication.
+
+### Building Locally (Optional)
+
+If you need to build the image locally:
+
+```bash
+# Build using traditional Dockerfile
+docker build -t data-lake-receiver:latest .
+
+# Or using Spring Boot Maven plugin
+mvn spring-boot:build-image
 ```
 
 ### Option 1: Filesystem Storage (Simple)
