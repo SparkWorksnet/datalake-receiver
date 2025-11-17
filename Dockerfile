@@ -32,7 +32,7 @@ RUN addgroup -g 1000 appuser && \
     chown -R appuser:appuser /app
 
 # Copy the JAR from builder stage
-COPY --from=builder /build/target/data-lake-receiver-*.jar app.jar
+COPY --from=builder /build/target/datalake-receiver-*.jar app.jar
 
 # Change ownership
 RUN chown appuser:appuser app.jar
