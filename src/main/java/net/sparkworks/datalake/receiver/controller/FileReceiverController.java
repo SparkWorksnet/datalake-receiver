@@ -21,6 +21,7 @@ public class FileReceiverController {
 
     private static final Logger logger = LoggerFactory.getLogger(FileReceiverController.class);
     private static final String FILENAME_HEADER = "X-file-name";
+    private static final String FILEPATH_HEADER = "X-file-path";
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final StorageProvider storageProvider;
@@ -59,18 +60,20 @@ public class FileReceiverController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("Unauthorized: Invalid or missing access token");
         }
-
+        
         // Extract filename from request path, header, or generate one
+        String filepath = extractFilepath(request, headers);
         String filename = extractFilename(request, headers);
-
+        
+        final String fullFilename = filepath == null ? filename : filepath + "/" + filename;
+        
         try {
-            logger.info("Storing file with filename: {} ({} bytes)", filename, data.length);
-            storageProvider.store(filename, data);
-            return ResponseEntity.ok("File stored successfully: " + filename);
+            logger.info("Storing file with filename: {} ({} bytes)", fullFilename, data.length);
+            storageProvider.store(fullFilename, data);
+            return ResponseEntity.ok("File stored successfully: " + fullFilename);
         } catch (IOException e) {
-            logger.error("Failed to store file: " + filename, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to store file: " + e.getMessage());
+            logger.error("Failed to store file: " + fullFilename, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to store file: " + e.getMessage());
         }
     }
 
@@ -107,6 +110,27 @@ public class FileReceiverController {
         String generatedFilename = "%d.data".formatted(System.currentTimeMillis());
         logger.debug("Using generated filename: {}", generatedFilename);
         return generatedFilename;
+    }
+    
+    /**
+     * Extract filepath from request header.
+     * Priority: request path > X-file-path header > timestamp
+     *
+     * @param request HTTP servlet request
+     * @param headers HTTP headers
+     * @return filename to use for storing the file
+     */
+    private String extractFilepath(HttpServletRequest request, HttpHeaders headers) {
+        // Try to get filename from request path
+        String requestPath = request.getRequestURI();
+        logger.debug("Request URI: {}", requestPath);
+        
+        String headerFilepath = headers.getFirst(FILEPATH_HEADER);
+        if (headerFilepath != null && !headerFilepath.isBlank()) {
+            logger.debug("Using filepath from header: {}", headerFilepath);
+            return headerFilepath;
+        }
+        return null;
     }
 
     /**
