@@ -2,6 +2,8 @@ package net.sparkworks.datalake.receiver.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import net.sparkworks.datalake.receiver.config.AuthProperties;
+import net.sparkworks.datalake.receiver.config.StorageProperties;
+import net.sparkworks.datalake.receiver.service.EdcAssetRegistrationService;
 import net.sparkworks.datalake.receiver.storage.StorageProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,14 +24,21 @@ public class FileReceiverController {
     private static final Logger logger = LoggerFactory.getLogger(FileReceiverController.class);
     private static final String FILENAME_HEADER = "X-file-name";
     private static final String FILEPATH_HEADER = "X-file-path";
+    private static final String FILEBUCKET_HEADER = "X-file-bucket";
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final StorageProvider storageProvider;
     private final AuthProperties authProperties;
+    private final EdcAssetRegistrationService edcAssetRegistrationService;
+    private final StorageProperties storageProperties;
 
-    public FileReceiverController(StorageProvider storageProvider, AuthProperties authProperties) {
+    public FileReceiverController(StorageProvider storageProvider, AuthProperties authProperties,
+                                  EdcAssetRegistrationService edcAssetRegistrationService,
+                                  StorageProperties storageProperties) {
         this.storageProvider = storageProvider;
         this.authProperties = authProperties;
+        this.edcAssetRegistrationService = edcAssetRegistrationService;
+        this.storageProperties = storageProperties;
     }
 
     /**
@@ -64,12 +73,14 @@ public class FileReceiverController {
         // Extract filename from request path, header, or generate one
         String filepath = extractFilepath(request, headers);
         String filename = extractFilename(request, headers);
-        
+        String bucketName = resolveBucketName(headers);
+
         final String fullFilename = filepath == null ? filename : filepath + "/" + filename;
-        
+
         try {
-            logger.info("Storing file with filename: {} ({} bytes)", fullFilename, data.length);
-            storageProvider.store(fullFilename, data);
+            logger.info("Storing file with filename: {} ({} bytes) in bucket '{}'", fullFilename, data.length, bucketName);
+            storageProvider.store(fullFilename, data, bucketName);
+            edcAssetRegistrationService.registerAsset(fullFilename, fullFilename, bucketName);
             return ResponseEntity.ok("File stored successfully: " + fullFilename);
         } catch (IOException e) {
             logger.error("Failed to store file: " + fullFilename, e);
@@ -131,6 +142,24 @@ public class FileReceiverController {
             return headerFilepath;
         }
         return null;
+    }
+
+    /**
+     * Resolve the target bucket name.
+     * Priority: X-file-bucket header > configured default (storage.minio.bucket-name)
+     *
+     * @param headers HTTP headers
+     * @return bucket name to use
+     */
+    private String resolveBucketName(HttpHeaders headers) {
+        String headerBucket = headers.getFirst(FILEBUCKET_HEADER);
+        if (headerBucket != null && !headerBucket.isBlank()) {
+            logger.debug("Using bucket from header: {}", headerBucket);
+            return headerBucket;
+        }
+        String defaultBucket = storageProperties.getMinio().getBucketName();
+        logger.debug("Using default bucket: {}", defaultBucket);
+        return defaultBucket;
     }
 
     /**

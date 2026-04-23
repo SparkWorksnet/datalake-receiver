@@ -36,6 +36,11 @@ storage:
     secret-key: minioadmin
     bucket-name: datalake
 
+# DALI EDC Connector Configuration
+dali:
+  connector:
+    url: ${DALI_CONNECTOR_URL:}
+
 # Authentication Configuration
 auth:
   # Enable/disable authentication

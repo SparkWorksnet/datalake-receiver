@@ -18,6 +18,19 @@ public interface StorageProvider {
     void store(String filename, byte[] data) throws IOException;
 
     /**
+     * Store data with the specified filename, overriding the default bucket/container.
+     * For filesystem providers the bucketName is ignored.
+     *
+     * @param filename   the name of the file to store
+     * @param data       the file content as byte array
+     * @param bucketName the target bucket (MinIO) or container; ignored by filesystem providers
+     * @throws IOException if storage operation fails
+     */
+    default void store(String filename, byte[] data, String bucketName) throws IOException {
+        store(filename, data);
+    }
+
+    /**
      * Initialize the storage provider with necessary setup.
      * For example, creating directories or verifying bucket access.
      *

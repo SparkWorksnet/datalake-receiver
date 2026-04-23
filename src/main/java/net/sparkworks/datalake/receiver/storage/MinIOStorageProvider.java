@@ -69,14 +69,25 @@ public class MinIOStorageProvider implements StorageProvider {
 
     @Override
     public void store(String filename, byte[] data) throws IOException {
+        store(filename, data, bucketName);
+    }
+
+    @Override
+    public void store(String filename, byte[] data, String targetBucket) throws IOException {
         try {
+            boolean exists = minioClient.bucketExists(BucketExistsArgs.builder().bucket(targetBucket).build());
+            if (!exists) {
+                logger.info("Creating MinIO bucket: {}", targetBucket);
+                minioClient.makeBucket(MakeBucketArgs.builder().bucket(targetBucket).build());
+            }
+
             ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
 
-            logger.info("Storing file to MinIO bucket '{}': {}", bucketName, filename);
+            logger.info("Storing file to MinIO bucket '{}': {}", targetBucket, filename);
 
             minioClient.putObject(
                     PutObjectArgs.builder()
-                            .bucket(bucketName)
+                            .bucket(targetBucket)
                             .object(filename)
                             .stream(inputStream, data.length, -1)
                             .contentType("application/octet-stream")
