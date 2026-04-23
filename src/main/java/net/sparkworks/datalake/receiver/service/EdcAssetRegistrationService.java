@@ -28,6 +28,7 @@ public class EdcAssetRegistrationService {
         this.properties = properties;
         this.storageProperties = storageProperties;
         this.restClient = RestClient.create();
+        logger.info("connectorUrl: {}", properties.getUrl());
     }
 
     /**
