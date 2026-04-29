@@ -36,11 +36,6 @@ storage:
     secret-key: minioadmin
     bucket-name: datalake
 
-# DALI EDC Connector Configuration
-dali:
-  connector:
-    url: ${DALI_CONNECTOR_URL:}
-
 # Authentication Configuration
 auth:
   # Enable/disable authentication
@@ -50,6 +45,19 @@ auth:
   # Clients must provide this token in the Authorization header as "Bearer {token}"
   # IMPORTANT: Change this to a secure random token in production
   access-token: ${AUTH_TOKEN:change-me-in-production}
+
+# Spring Boot Actuator / Prometheus
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
 # Logging Configuration
 logging:

@@ -12,4 +12,6 @@
 
  ===================================================================================
  Ready to receive and store files - Send POST requests to http://localhost:${server.port}/
+ Health check: http://localhost:${server.port}/actuator/health
+ Metrics:      http://localhost:${server.port}/actuator/prometheus
  ===================================================================================

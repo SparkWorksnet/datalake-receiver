@@ -1,9 +1,11 @@
 package net.sparkworks.datalake.receiver.controller;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import jakarta.servlet.http.HttpServletRequest;
 import net.sparkworks.datalake.receiver.config.AuthProperties;
 import net.sparkworks.datalake.receiver.config.StorageProperties;
-import net.sparkworks.datalake.receiver.service.EdcAssetRegistrationService;
 import net.sparkworks.datalake.receiver.storage.StorageProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +15,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * REST controller for receiving and storing files.
@@ -29,16 +33,23 @@ public class FileReceiverController {
 
     private final StorageProvider storageProvider;
     private final AuthProperties authProperties;
-    private final EdcAssetRegistrationService edcAssetRegistrationService;
     private final StorageProperties storageProperties;
+    private final MeterRegistry meterRegistry;
+
+    private final Map<String, Counter> receivedCounters = new ConcurrentHashMap<>();
+    private final Map<String, Counter> failedCounters = new ConcurrentHashMap<>();
+    private final Map<String, Counter> bytesCounters = new ConcurrentHashMap<>();
+    private final Timer requestTimer;
 
     public FileReceiverController(StorageProvider storageProvider, AuthProperties authProperties,
-                                  EdcAssetRegistrationService edcAssetRegistrationService,
-                                  StorageProperties storageProperties) {
+                                  StorageProperties storageProperties, MeterRegistry meterRegistry) {
         this.storageProvider = storageProvider;
         this.authProperties = authProperties;
-        this.edcAssetRegistrationService = edcAssetRegistrationService;
         this.storageProperties = storageProperties;
+        this.meterRegistry = meterRegistry;
+        this.requestTimer = Timer.builder("datalake_receiver_request_duration_seconds")
+                .description("Time spent processing a file upload request")
+                .register(meterRegistry);
     }
 
     /**
@@ -78,14 +89,45 @@ public class FileReceiverController {
         final String fullFilename = filepath == null ? filename : filepath + "/" + filename;
 
         try {
-            logger.info("Storing file with filename: {} ({} bytes) in bucket '{}'", fullFilename, data.length, bucketName);
-            storageProvider.store(fullFilename, data, bucketName);
-            edcAssetRegistrationService.registerAsset(fullFilename, fullFilename, bucketName);
-            return ResponseEntity.ok("File stored successfully: " + fullFilename);
+            return requestTimer.recordCallable(() -> {
+                logger.info("Storing file with filename: {} ({} bytes) in bucket '{}'", fullFilename, data.length, bucketName);
+                storageProvider.store(fullFilename, data, bucketName);
+                receivedCounter(bucketName).increment();
+                bytesCounter(bucketName).increment(data.length);
+                return ResponseEntity.ok("File stored successfully: " + fullFilename);
+            });
         } catch (IOException e) {
+            failedCounter(bucketName).increment();
             logger.error("Failed to store file: " + fullFilename, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to store file: " + e.getMessage());
+        } catch (Exception e) {
+            failedCounter(bucketName).increment();
+            logger.error("Unexpected error storing file: " + fullFilename, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to store file: " + e.getMessage());
         }
+    }
+
+    // ── Meter helpers ──────────────────────────────────────────────────────────
+
+    private Counter receivedCounter(String bucket) {
+        return receivedCounters.computeIfAbsent(bucket, b -> Counter.builder("datalake_receiver_files_received_total")
+                .description("Number of files successfully stored")
+                .tag("bucket", b)
+                .register(meterRegistry));
+    }
+
+    private Counter failedCounter(String bucket) {
+        return failedCounters.computeIfAbsent(bucket, b -> Counter.builder("datalake_receiver_files_failed_total")
+                .description("Number of file storage failures")
+                .tag("bucket", b)
+                .register(meterRegistry));
+    }
+
+    private Counter bytesCounter(String bucket) {
+        return bytesCounters.computeIfAbsent(bucket, b -> Counter.builder("datalake_receiver_bytes_received_total")
+                .description("Total bytes received and stored")
+                .tag("bucket", b)
+                .register(meterRegistry));
     }
 
     /**
